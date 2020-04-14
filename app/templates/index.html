@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="row">
+        <ul>
+            {% for task in tasks|sort(attribute='id') %}
+            <li>ID {{ task.id }} STATUS {{ task.task_status }} TIME {{ task.timestamp }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    
+    <div class="row">
+        <ul>
+            {% for result in results %}
+            <li>ID {{ result.id }} WORDS {{ result.words_count }} ADDRESS {{ result.address }} {{ result.http_status_code }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

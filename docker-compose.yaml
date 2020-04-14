@@ -1,0 +1,76 @@
+version: '3'
+services:
+  redis:
+    image: redis:5.0.7
+    ports:
+      - 6379:6379
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: "docker"
+      POSTGRES_USER: postgres
+      POSTGRES_DB: ​test
+  nsqlookupd:
+    image: nsqio/nsq
+    command: /nsqlookupd
+    ports:
+      - "4160:4160"
+      - "4161:4161"
+  nsqd:
+    image: nsqio/nsq
+    command: /nsqd --lookupd-tcp-address=nsqlookupd:4160
+    depends_on:
+      - nsqlookupd
+    ports:
+      - "4150:4150"
+      - "4151:4161"
+  nsqadmin:
+    image: nsqio/nsq
+    command: /nsqadmin --lookupd-http-address=nsqlookupd:4161
+    depends_on:
+      - nsqlookupd  
+    ports:
+      - "4171:4171"
+  consumer:
+    build: .
+    environment:
+      - TCP_ADDRESSES=nsqd:4150
+      - DATABASE_URI=postgresql+psycopg2://postgres:docker@db:5432/test
+    depends_on:
+      - nsqd
+      # - db
+    command: python app/consumer.py
+  app:
+    build: .
+    ports:
+      - 8081:8081
+    environment:
+      # - TCP_ADDRESSES=nsqd:4150
+      # - TOPIC=nsq_topic
+      - REDIS_HOST=redis
+      - DATABASE_URL=postgresql+psycopg2://postgres:docker@db:5432/test
+      # - DATABASE_URL=db
+      - SECRET_KEY='kajsdkjasfasdkfjahsdkjh'
+      - CELERY_BROKER_URL=redis
+      - CELERY_RESULT_BACKEND=redis
+      - NSQD_SERVER=nsqd:4151
+      - PORT=8081
+    depends_on:
+      - nsqd
+      - redis
+      # - db
+    command: python app/main.py
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      # - app
+    # command: celery worker -B -l info -A app
+    command: celery -A app.app worker  --loglevel=info
+    # command: celery worker -B -l info -A app.view
+    # command: celeryd --config=app.flask_celery --loglevel=INFO --purge -Q
