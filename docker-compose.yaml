@@ -8,7 +8,7 @@ services:
     image: postgres
     restart: always
     environment:
-      POSTGRES_PASSWORD: "docker"
+      POSTGRES_PASSWORD: docker
       POSTGRES_USER: postgres
       POSTGRES_DB: ​test
   nsqlookupd:
@@ -37,10 +37,15 @@ services:
     environment:
       - TCP_ADDRESSES=nsqd:4150
       - DATABASE_URI=postgresql+psycopg2://postgres:docker@db:5432/test
+    links:
+      - nsqd
+      - db
+      - nsqlookupd
     depends_on:
       - nsqd
-      # - db
-    command: python app/consumer.py
+      - db
+      - nsqlookupd
+    command: python consumer.py
   app:
     build: .
     ports:
@@ -52,25 +57,43 @@ services:
       - DATABASE_URL=postgresql+psycopg2://postgres:docker@db:5432/test
       # - DATABASE_URL=db
       - SECRET_KEY='kajsdkjasfasdkfjahsdkjh'
-      - CELERY_BROKER_URL=redis
-      - CELERY_RESULT_BACKEND=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - NSQD_SERVER=nsqd:4151
       - PORT=8081
+    links:
+      - nsqd
+      - redis
+      - db
     depends_on:
       - nsqd
       - redis
-      # - db
-    command: python app/main.py
+      - db
+    command: python main.py
   worker:
     build:
       context: .
       dockerfile: Dockerfile
-    volumes:
-      - .:/app
+    # volumes:
+    #   - .:/app
+    links:
+      - redis
+      - db
+      - nsqd
+    environment: 
+      - SECRET_KEY='kajsdkjasfasdkfjahsdkjh'
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      # - CELERY_BROKER_URL=redis
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # - CELERY_RESULT_BACKEND=redis
+      - NSQD_SERVER=nsqd:4151
+      - DATABASE_URL=postgresql://postgres:docker@db:5432/test
     depends_on:
       - redis
-      # - app
-    # command: celery worker -B -l info -A app
-    command: celery -A app.app worker  --loglevel=info
+      - db
+      - nsqd
+    command: flask db upgrade
+    # command: celery worker -A app.celery  --loglevel=info
+    command: celery -A app.app_celery worker  --loglevel=info
     # command: celery worker -B -l info -A app.view
     # command: celeryd --config=app.flask_celery --loglevel=INFO --purge -Q
