@@ -26,4 +26,6 @@ RUN apk update && apk add postgresql-dev gcc python3-dev musl-dev
 
 RUN pip install psycopg2-binary
 
+
+
 # ENTRYPOINT celery -A app worker --concurrency=20 --loglevel=DEBUG

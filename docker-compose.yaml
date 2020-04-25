@@ -4,17 +4,26 @@ services:
     image: redis:5.0.7
     ports:
       - 6379:6379
+  # db:
+  #   image: postgres
+  #   # restart: always
+  #   # ports:
+  #   #   - 5432:5432
+  #   # volumes:
+  #   #   - ./pgsql:/var/lib/postgresql/data
+  #   environment:
+  #     POSTGRES_PASSWORD: docker
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_DB: ​test
   db:
     image: postgres
-    # restart: always
-    # ports:
-    #   - 5432:5432
-    # volumes:
-    #   - ./pgsql:/var/lib/postgresql/data
+    restart: always
+    ports:
+      - 5432:5432
     environment:
-      POSTGRES_PASSWORD: docker
-      POSTGRES_USER: postgres
-      POSTGRES_DB: ​test
+      - POSTGRES_PASSWORD=docker
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=test
   nsqlookupd:
     image: nsqio/nsq
     command: /nsqlookupd
